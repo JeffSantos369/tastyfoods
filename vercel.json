@@ -6,14 +6,27 @@
       "use": "@vercel/node"
     },
     {
+      "src": "styles.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "admin.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "**/*.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "**/*",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server.js"
-    }
+    { "src": "/products", "dest": "server.js" },
+    { "src": "/categories", "dest": "server.js" },
+    { "src": "/orders", "dest": "server.js" },
+    { "src": "/payments/(.*)", "dest": "server.js" },
+    { "src": "/(.*)", "dest": "server.js" }
   ]
 }

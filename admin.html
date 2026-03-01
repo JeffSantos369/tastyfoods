@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração - Tasty Foods Pizzaria</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <header>
+        <h1>Painel de Administração - Tasty Foods Pizzaria</h1>
+    </header>
+
+    <div class="admin-container">
+        <nav class="sidebar">
+            <ul>
+                <li><a href="#" data-section="dashboard" class="active">Dashboard</a></li>
+                <li><a href="#" data-section="categories">Categorias</a></li>
+                <li><a href="#" data-section="products">Produtos</a></li>
+                <li><a href="#" data-section="orders">Pedidos <span id="new-orders-badge" style="display:none; background:#d32f2f; color:white; font-size:12px; padding:2px 8px; border-radius:12px; margin-left:10px;"></span></a></li>
+                <li><a href="#" data-section="payments">Pagamentos</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <section id="dashboard" class="section active">
+                <h2>Dashboard</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>Total Categorias</h3>
+                        <p id="total-categories">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Produtos</h3>
+                        <p id="total-products">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Pedidos</h3>
+                        <p id="total-orders">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Pagamentos</h3>
+                        <p id="total-payments">0</p>
+                    </div>
+                </div>
+                <div class="charts">
+                    <canvas id="categoryChart"></canvas>
+                    <canvas id="productChart"></canvas>
+                    <canvas id="orderChart"></canvas>
+                </div>
+            </section>
+
+            <section id="categories" class="section">
+                <h2>Categorias</h2>
+                <div id="categories-list"></div>
+                <form id="category-form">
+                    <div class="form-group">
+                        <label for="category-name">Nome da Categoria:</label>
+                        <input type="text" id="category-name" required>
+                    </div>
+                    <button type="submit">Adicionar Categoria</button>
+                </form>
+            </section>
+
+            <section id="products" class="section">
+                <h2>Produtos</h2>
+                <div id="products-list"></div>
+                <form id="product-form">
+                    <div class="form-group">
+                        <label for="product-name">Nome do Produto:</label>
+                        <input type="text" id="product-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-price">Preço:</label>
+                        <input type="number" id="product-price" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-description">Descrição:</label>
+                        <textarea id="product-description" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-category">Categoria:</label>
+                        <select id="product-category" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-image">Imagem do Produto:</label>
+                        <input type="file" id="product-image" accept="image/*">
+                    </div>
+                    <button type="submit">Adicionar Produto</button>
+                </form>
+            </section>
+
+<section id="orders" class="section">
+                <h2>Pedidos</h2>
+                <!-- Search/Filter -->
+                <div class="order-filters">
+                    <input type="text" id="order-search" placeholder="Buscar por nome, telefone ou data..." onkeyup="filterOrders()">
+                    <select id="status-filter" onchange="filterOrders()">
+                        <option value="">Todos os status</option>
+                        <option value="pending">Pendente</option>
+                        <option value="confirmed">Confirmado</option>
+                        <option value="preparing">Preparando</option>
+                        <option value="delivered">Entregue</option>
+                        <option value="cancelled">Cancelado</option>
+                    </select>
+                </div>
+                <div id="orders-list"></div>
+            </section>
+
+            <section id="payments" class="section">
+                <h2>Pagamentos</h2>
+                <div id="payments-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let categories = [];
+        let products = [];
+        let orders = [];
+        let payments = [];
+        let lastOrderId = 0;  // Rastreia o último ID de pedido conhecido
+        let notificationPermission = false;  // Permissão para notificações do navegador
+
+        // Request notification permission on page load
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                notificationPermission = permission === 'granted';
+            }
+        }
+
+        // Navigation
+        document.querySelectorAll('.sidebar a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = e.target.getAttribute('data-section');
+                showSection(section);
+            });
+        });
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.querySelectorAll('.sidebar a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+
+            // Esconde o badge quando abre a seção de Pedidos
+            if (sectionId === 'orders') {
+                document.getElementById('new-orders-badge').style.display = 'none';
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/categories');
+                categories = await response.json();
+                const list = document.getElementById('categories-list');
+                list.innerHTML = '<table><tr><th>ID</th><th>Nome</th><th>Ações</th></tr>' +
+                    categories.map(cat => `<tr><td>${cat.id}</td><td>${cat.name}</td><td><button onclick="deleteCategory('${cat.id}')">Excluir</button></td></tr>`).join('') +
+                    '</table>';
+
+                const select = document.getElementById('product-category');
+                select.innerHTML = categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (confirm('Tem certeza que deseja excluir esta categoria?')) {
+                try {
+                    const response = await fetch(`/categories/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        loadCategories();
+                        loadDashboard();
+                    } else {
+                        const errorData = await response.json();
+                        alert('Erro ao excluir categoria: ' + errorData.error);
+                    }
+                } catch (error) {
+                    console.error('Error deleting category:', error);
+                    alert('Erro ao excluir categoria');
+                }
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch('/products');
+                products = await response.json();
+                const list = document.getElementById('products-list');
+                list.innerHTML = '<table><tr><th>ID</th><th>Nome</th><th>Preço</th><th>Descrição</th><th>Categoria</th><th>Imagem</th><th>Ações</th></tr>' +
+                    products.map(prod => `<tr><td>${prod.id}</td><td>${prod.name}</td><td>R$${prod.price.toFixed(2)}</td><td>${prod.description}</td><td>${prod.category_id}</td><td>${prod.image ? '<img src=\"/uploads/' + prod.image + '\" width=\"50\" height=\"50\">' : 'N/A'}</td><td><button onclick="deleteProduct(${prod.id})">Excluir</button></td></tr>`).join('') +
+                    '</table>';
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Tem certeza que deseja excluir este produto?')) {
+                try {
+                    const response = await fetch(`/products/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        loadProducts();
+                        loadDashboard();
+                    } else {
+                        const errorData = await response.json();
+                        alert('Erro ao excluir produto: ' + errorData.error);
+                    }
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    alert('Erro ao excluir produto');
+                }
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const [ordersResponse, paymentsResponse] = await Promise.all([
+                    fetch('/orders'),
+                    fetch('/payments')
+                ]);
+                orders = await ordersResponse.json();
+                const payments = await paymentsResponse.json();
+                
+                const list = document.getElementById('orders-list');
+                
+                if (orders.length === 0) {
+                    list.innerHTML = '<p>Nenhum pedido encontrado.</p>';
+                    return;
+                }
+                
+                list.innerHTML = orders.map(order => {
+                    const payment = payments.find(p => p.order_id == order.id);
+                    
+                    let paymentStatusHtml = '';
+let paymentDetailsHtml = '';
+                    
+                    if (payment) {
+                        const statusClass = payment.status === 'confirmed' ? 'status-confirmed' : 'status-pending';
+                        const statusText = payment.status === 'confirmed' ? 'Confirmado' : 'Pendente';
+                        paymentStatusHtml = `<span class="payment-status ${statusClass}">${statusText}</span>`;
+                        
+                        if (payment.amount_brl) {
+                            paymentDetailsHtml = `
+                                <div class="payment-details">
+                                    <strong>Valor:</strong> R$${parseFloat(payment.amount_brl).toFixed(2)}<br>
+                                    ${payment.amount_ton ? `<strong>Valor em TON:</strong> ${payment.amount_ton} TON<br>` : ''}
+                                    ${payment.payment_address ? `<strong>Endereço:</strong> <span class="payment-address">${payment.payment_address}</span><br>` : ''}
+                                    ${payment.exchange_rate ? `<strong>Taxa de câmbio:</strong> R$${payment.exchange_rate}/TON<br>` : ''}
+                                </div>
+                            `;
+                        }
+                    } else {
+                        paymentStatusHtml = '<span class="payment-status status-pending">Pendente</span>';
+                    }
+                    
+                    const orderStatus = order.status || 'pending';
+                    const statusLabels = {'pending': 'Pendente', 'confirmed': 'Confirmado', 'preparing': 'Preparando', 'delivered': 'Entregue', 'cancelled': 'Cancelado'};
+                    const statusColors = {'pending': '#ff9800', 'confirmed': '#2196f3', 'preparing': '#9c27b0', 'delivered': '#4caf50', 'cancelled': '#f44336'};
+                    const orderDate = order.created_at ? new Date(order.created_at).toLocaleString('pt-BR') : 'N/A';
+                    const orderPaymentMethod = order.payment_method || 'cash';
+                    const paymentMethodLabels = {'cash': 'Dinheiro na Entrega', 'pix': 'PIX', 'ton': 'TON (Crypto)'};
+                    
+                    return `
+                        <div class="item order-item" data-order-id="${order.id}" data-customer-name="${order.customer_name ? order.customer_name.toLowerCase() : ''}" data-customer-phone="${order.customer_phone || ''}" data-order-date="${order.created_at || ''}" data-status="${orderStatus}">
+                            <div class="order-header" onclick="toggleOrderDetails(${order.id})" style="cursor: pointer; padding: 10px; background: #f5f5f5; border-radius: 4px; margin-bottom: 10px;">
+                                <div class="order-summary">
+                                    <strong>ID #${order.id}</strong> - ${order.customer_name || 'Cliente'} 
+                                    <span class="order-status-badge" style="background-color: ${statusColors[orderStatus]}; color: white; padding: 2px 8px; border-radius: 4px; margin-left: 10px;">${statusLabels[orderStatus]}</span>
+                                    <span class="order-date" style="margin-left: 10px; color: #666;">${orderDate}</span>
+                                </div>
+                                <span class="expand-icon">▼</span>
+                            </div>
+                            <div class="order-details" id="order-details-${order.id}" style="display: none; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                <div class="order-details-grid">
+                                    <div>
+                                        <strong>Email:</strong> ${order.customer_email || 'N/A'}<br>
+                                        <strong>Telefone:</strong> ${order.customer_phone || 'N/A'}<br>
+                                        <strong>Endereço:</strong> ${order.delivery_address || 'N/A'}<br>
+                                        ${order.customer_notes ? `<strong>Observações:</strong> ${order.customer_notes}<br>` : ''}
+                                    </div>
+                                    <div>
+                                        <strong>Itens:</strong> ${order.items ? order.items.map(item => `${item.name} (R$${item.price.toFixed(2)})`).join(', ') : 'N/A'}<br>
+                                        <strong>Total:</strong> R$${order.total ? order.total.toFixed(2) : '0.00'}<br>
+                                        <strong>Forma de Pagamento:</strong> ${paymentMethodLabels[orderPaymentMethod] || 'Não especificado'}<br>
+                                        <strong>Status do Pagamento:</strong> ${paymentStatusHtml}
+                                        ${paymentDetailsHtml}
+                                    </div>
+                                </div>
+                                <div class="order-actions" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                    <label>Atualizar Status:</label>
+                                    <select id="status-select-${order.id}" onchange="updateOrderStatus(${order.id}, this.value)" style="margin-left: 10px; padding: 5px;">
+                                        <option value="pending" ${orderStatus === 'pending' ? 'selected' : ''}>Pendente</option>
+                                        <option value="confirmed" ${orderStatus === 'confirmed' ? 'selected' : ''}>Confirmado</option>
+                                        <option value="preparing" ${orderStatus === 'preparing' ? 'selected' : ''}>Preparando</option>
+                                        <option value="delivered" ${orderStatus === 'delivered' ? 'selected' : ''}>Entregue</option>
+                                        <option value="cancelled" ${orderStatus === 'cancelled' ? 'selected' : ''}>Cancelado</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+
+        async function loadPayments() {
+            try {
+                const response = await fetch('/payments');
+                payments = await response.json();
+                const list = document.getElementById('payments-list');
+                
+                if (payments.length === 0) {
+                    list.innerHTML = '<p>Nenhum pagamento encontrado.</p>';
+                    return;
+                }
+                
+                list.innerHTML = payments.map(payment => {
+                    const statusClass = payment.status === 'confirmed' ? 'status-confirmed' : 'status-pending';
+                    const statusText = payment.status === 'confirmed' ? 'Confirmado' : 'Pendente';
+                    
+                    let paymentMethod = 'Não especificado';
+                    if (payment.payment_address) {
+                        paymentMethod = payment.amount_ton ? 'TON (Crypto)' : 'PIX';
+                    } else {
+                        paymentMethod = 'Dinheiro';
+                    }
+                    
+                    return `
+                        <div class="item">
+                            <strong>ID do Pagamento:</strong> ${payment.id}<br>
+                            <strong>ID do Pedido:</strong> ${payment.order_id || 'N/A'}<br>
+                            <strong>Forma de Pagamento:</strong> ${paymentMethod}<br>
+                            <strong>Status:</strong> <span class="payment-status ${statusClass}">${statusText}</span><br>
+                            <strong>Valor (BRL):</strong> R$${payment.amount_brl ? parseFloat(payment.amount_brl).toFixed(2) : '0.00'}<br>
+                            ${payment.amount_ton ? `<strong>Valor (TON):</strong> ${payment.amount_ton} TON<br>` : ''}
+                            ${payment.exchange_rate ? `<strong>Taxa de Câmbio:</strong> R$${payment.exchange_rate}/TON<br>` : ''}
+                            ${payment.payment_address ? `<strong>Endereço de Pagamento:</strong> <span class="payment-address">${payment.payment_address}</span><br>` : ''}
+                            ${payment.customer_wallet ? `<strong>Carteira do Cliente:</strong> ${payment.customer_wallet}<br>` : ''}
+                            <strong>Criado em:</strong> ${payment.created_at ? new Date(payment.created_at).toLocaleString() : 'N/A'}<br>
+                            ${payment.confirmed_at ? `<strong>Confirmado em:</strong> ${new Date(payment.confirmed_at).toLocaleString()}<br>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading payments:', error);
+            }
+        }
+
+        async function loadDashboard() {
+            await Promise.all([loadCategories(), loadProducts(), loadOrders(), loadPayments()]);
+            
+            document.getElementById('total-categories').textContent = categories.length;
+            document.getElementById('total-products').textContent = products.length;
+            document.getElementById('total-orders').textContent = orders.length;
+            document.getElementById('total-payments').textContent = payments.length;
+            
+            renderCharts();
+
+            // === DETECÇÃO DE NOVOS PEDIDOS ===
+            detectNewOrders();
+            // === FIM DETECÇÃO ===
+        }
+
+        function detectNewOrders() {
+            if (orders.length === 0) return;
+            
+            // Find the highest order ID
+            const currentHighestId = Math.max(...orders.map(o => o.id));
+            
+            // If we have a previous highest ID and it's less than current, we have new orders
+            if (lastOrderId > 0 && currentHighestId > lastOrderId) {
+                const newCount = currentHighestId - lastOrderId;
+                
+                // Play notification sound
+                playNotificationSound();
+                
+                // Show browser notification if permitted
+                if (notificationPermission) {
+                    showBrowserNotification(newCount);
+                }
+                
+                // Update badge
+                const badge = document.getElementById('new-orders-badge');
+                badge.textContent = newCount === 1 ? '1 novo' : `${newCount} novos`;
+                badge.style.display = 'inline';
+                
+                // Also flash the document title to get attention
+                flashDocumentTitle(newCount);
+            }
+            
+            // Update the last known order ID
+            lastOrderId = currentHighestId;
+        }
+
+        function showBrowserNotification(newCount) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            
+            const notification = new Notification('Tasty Foods Pizzaria', {
+                body: newCount === 1 ? 'Novo pedido recebido!' : `${newCount} novos pedidos recebidos!`,
+                icon: 'https://via.placeholder.com/48x48?text=🍕',
+                tag: 'new-order',
+                requireInteraction: true
+            });
+            
+            notification.onclick = function() {
+                window.focus();
+                showSection('orders');
+                notification.close();
+            };
+            
+            // Auto-close after 5 seconds
+            setTimeout(() => notification.close(), 5000);
+        }
+
+        let originalTitle = document.title;
+        let titleFlashInterval = null;
+
+        function flashDocumentTitle(newCount) {
+            if (titleFlashInterval) return;
+            
+            let isOriginal = true;
+            const flashText = newCount === 1 ? '🔔 Novo Pedido!' : `🔔 ${newCount} Novos Pedidos!`;
+            
+            titleFlashInterval = setInterval(() => {
+                document.title = isOriginal ? originalTitle : flashText;
+                isOriginal = !isOriginal;
+            }, 1000);
+            
+            // Stop flashing when user focuses on the page
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    stopTitleFlash();
+                }
+            });
+            
+            window.addEventListener('focus', stopTitleFlash);
+        }
+
+        function stopTitleFlash() {
+            if (titleFlashInterval) {
+                clearInterval(titleFlashInterval);
+                titleFlashInterval = null;
+                document.title = originalTitle;
+            }
+        }
+
+        function renderCharts() {
+            const categoryCounts = categories.map(cat => {
+                const count = products.filter(prod => prod.category_id == cat.id).length;
+                return { name: cat.name, count };
+            });
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: categoryCounts.map(c => c.name),
+                    datasets: [{
+                        data: categoryCounts.map(c => c.count),
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Produtos por Categoria'
+                        }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('productChart'), {
+                type: 'bar',
+                data: {
+                    labels: products.map(p => p.name),
+                    datasets: [{
+                        label: 'Preço (R$)',
+                        data: products.map(p => p.price),
+                        backgroundColor: '#36A2EB'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Preços dos Produtos'
+                        }
+                    }
+                }
+            });
+
+            const orderData = orders.length > 0 ? orders.map((o, i) => ({ x: i + 1, y: o.total || 0 })) : [{ x: 1, y: 0 }];
+            new Chart(document.getElementById('orderChart'), {
+                type: 'line',
+                data: {
+                    labels: orderData.map(d => `Pedido ${d.x}`),
+                    datasets: [{
+                        label: 'Total (R$)',
+                        data: orderData.map(d => d.y),
+                        borderColor: '#FF6384',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Totais dos Pedidos'
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('category-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('category-name').value;
+            try {
+                await fetch('/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                document.getElementById('category-name').value = '';
+                loadCategories();
+                loadDashboard();
+            } catch (error) {
+                console.error('Error adding category:', error);
+            }
+        });
+
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('name', document.getElementById('product-name').value);
+            formData.append('price', document.getElementById('product-price').value);
+            formData.append('description', document.getElementById('product-description').value);
+            formData.append('category_id', document.getElementById('product-category').value);
+            const imageFile = document.getElementById('product-image').files[0];
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+            try {
+                await fetch('/products', {
+                    method: 'POST',
+                    body: formData
+                });
+                document.getElementById('product-name').value = '';
+                document.getElementById('product-price').value = '';
+                document.getElementById('product-description').value = '';
+                document.getElementById('product-image').value = '';
+                loadProducts();
+                loadDashboard();
+            } catch (error) {
+                console.error('Error adding product:', error);
+            }
+        });
+
+        function playNotificationSound() {
+            // Try Web Audio API first (more reliable)
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioContext();
+                
+                // Resume context if suspended (required after user interaction)
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                
+                // Create a pleasant notification sound (two tones)
+                const playTone = (freq, startTime, duration) => {
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(freq, startTime);
+                    
+                    gainNode.gain.setValueAtTime(0.3, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + duration);
+                };
+                
+                const now = ctx.currentTime;
+                playTone(800, now, 0.15);      // First tone
+                playTone(1000, now + 0.15, 0.2); // Second tone (higher)
+                
+            } catch (e) {
+                console.log("Web Audio API failed, trying fallback");
+                // Fallback: try to play an audio element if available
+                playFallbackSound();
+            }
+        }
+
+        function playFallbackSound() {
+            // Create a simple beep using AudioContext with user interaction
+            try {
+                // Use a different approach - create oscillator on demand
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'square';
+                oscillator.frequency.value = 880;
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                
+                // Beep pattern
+                setTimeout(() => oscillator.stop(), 100);
+                setTimeout(() => {
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.type = 'square';
+                    osc2.frequency.value = 880;
+                    gain2.gain.value = 0.1;
+                    osc2.start();
+                    setTimeout(() => osc2.stop(), 100);
+                }, 150);
+                
+            } catch (e) {
+                console.log("All audio playback methods failed");
+            }
+        }
+
+        // Request notification permission on page load
+        requestNotificationPermission();
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Polling automático a cada 15 segundos para verificar novos pedidos
+        setInterval(loadDashboard, 15000);
+
+        // Toggle order details expansion
+        function toggleOrderDetails(orderId) {
+            const details = document.getElementById('order-details-' + orderId);
+            details.style.display = details.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Filter orders by search text and status
+        function filterOrders() {
+            const searchText = document.getElementById('order-search').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            document.querySelectorAll('.order-item').forEach(item => {
+                const customerName = item.getAttribute('data-customer-name') || '';
+                const customerPhone = item.getAttribute('data-customer-phone') || '';
+                const orderDate = item.getAttribute('data-order-date') || '';
+                const orderStatus = item.getAttribute('data-status') || 'pending';
+                const matchesSearch = customerName.includes(searchText) || customerPhone.includes(searchText) || orderDate.includes(searchText);
+                const matchesStatus = statusFilter === '' || orderStatus === statusFilter;
+                item.style.display = (matchesSearch && matchesStatus) ? 'block' : 'none';
+            });
+        }
+
+        // Update order status
+        async function updateOrderStatus(orderId, newStatus) {
+            const response = await fetch('/orders/' + orderId + '/status', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (response.ok) {
+                alert('Status atualizado!');
+                loadOrders();
+            }
+        }
+    </script>
+</body>
+</html>

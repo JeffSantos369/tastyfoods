@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasty Foods Pizzaria - As Melhores Pizzas!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .hero {
+            background: url('https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200') no-repeat center center;
+            background-size: cover;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+        }
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+        }
+        .hero h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .hero button {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+        }
+        .hero button:hover {
+            background-color: #b71c1c;
+            transform: translateY(-2px);
+            
+            box-shadow: 0 6px 20px rgba(211, 47, 47, 0.6);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        /* Fallback for older browsers */
+        @supports not (grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))) {
+            .features {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .feature {
+                flex: 1 1 250px;
+                max-width: 350px;
+                margin: 15px;
+            }
+        }
+        .feature {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .feature h3 {
+            color: #d32f2f;
+            margin-bottom: 10px;
+        }
+        .menu-preview {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .menu-preview h2 {
+            text-align: center;
+            color: #d32f2f;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+        .pizza-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        
+        /* Fallback for older browsers */
+        @supports not (grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))) {
+            .pizza-grid {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .pizza-card {
+                flex: 1 1 280px;
+                max-width: 350px;
+                margin: 15px;
+            }
+        }
+        .pizza-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .pizza-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .pizza-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .pizza-info {
+            padding: 20px;
+        }
+        .pizza-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .pizza-info p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        .pizza-price {
+            font-size: 1.3rem;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .cta {
+            background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+            color: white;
+            text-align: center;
+            padding: 60px 20px;
+            margin-top: 40px;
+        }
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        .cta button {
+            background-color: white;
+            color: #d32f2f;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .cta button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+        footer p {
+            margin: 5px 0;
+        }
+        @media (max-width: 768px) {
+            .hero h2 {
+                font-size: 2rem;
+            }
+            header h1 {
+                font-size: 1.8rem;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🍕 Tasty Foods Pizzaria</h1>
+        <p>As pizzas mais deliciosas entregues na sua porta!</p>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h2>肥仔最愛的披萨</h2>
+            <button onclick="window.location.href='index.html'">Ver Menu Completo</button>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🚚</div>
+                <h3>Entrega Rápida</h3>
+                <p>Entregamos em toda a região com rapidez e segurança</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🍕</div>
+                <h3>Ingredientes Frescos</h3>
+                <p>Usamos apenas ingredientes frescos e de qualidade</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⭐</div>
+                <h3>Qualidade Premium</h3>
+                <p>Mais de 10 anos servindo as melhores pizzas</p>
+            </div>
+        </div>
+
+        <div class="menu-preview">
+            <h2>Nosso Cardápio</h2>
+            <div class="pizza-grid">
+                <div class="pizza-card">
+                    <img src="https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=400" alt="Pizza Mussarela">
+                    <div class="pizza-info">
+                        <h3>Pizza Mussarela</h3>
+                        <p>Queijo mussarela, tomate e oregano</p>
+                        <div class="pizza-price">R$ 45,90</div>
+                    </div>
+                </div>
+                <div class="pizza-card">
+                    <img src="https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400" alt="Pizza Calabresa">
+                    <div class="pizza-info">
+                        <h3>Pizza Calabresa</h3>
+                        <p>Calabresa, cebola e mussarela</p>
+                        <div class="pizza-price">R$ 49,90</div>
+                    </div>
+                </div>
+                <div class="pizza-card">
+                    <img src="https://images.unsplash.com/photo-1594007654729-407eedc4be65?w=400" alt="Pizza Frango">
+                    <div class="pizza-info">
+                        <h3>Pizza Frango</h3>
+                        <p>Frango desfiado, catupiry e milho</p>
+                        <div class="pizza-price">R$ 52,90</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="cta">
+        <h2>Faça Seu Pedido Agora!</h2>
+        <p style="margin-bottom: 20px; font-size: 1.1rem;">Clique no botão abaixo para ver nosso menu completo e fazer seu pedido</p>
+        <button onclick="window.location.href='index.html'">Acessar Cardápio</button>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Tasty Foods Pizzaria. Todos os direitos reservados.</p>
+        <p>📍 Endereço: Rua das Pizzas, 123 - Centro</p>
+        <p>📞 Telefone: (11) 1234-5678</p>
+    </footer>
+</body>
+</html>

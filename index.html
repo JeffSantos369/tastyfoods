@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasty Foods Pizzaria</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Tasty Foods Pizzaria</h1>
+            <p>Pizzas deliciosas e bebidas entregues na sua porta!</p>
+    </header>
+
+    <div class="container">
+        <h2>Our Menu</h2>
+        <div class="menu" id="menu"></div>
+
+        <div class="order-form">
+            <h2>Faça Seu Pedido</h2>
+            <input type="text" id="name" placeholder="Seu Nome" required>
+            <input type="email" id="email" placeholder="Seu Email" required>
+            <input type="tel" id="phone" placeholder="Seu Telefone" required>
+            
+<!-- Address field for delivery -->
+            <input type="text" id="address" placeholder="Endereço de Entrega">
+            
+            <!-- Customer Notes -->
+            <textarea id="customer-notes" placeholder="Observações do pedido (ex: sem cebola, borda recheada, etc.)" rows="3"></textarea>
+            
+            <!-- Payment Method Selection -->
+            <div class="payment-method">
+                <h3>Forma de Pagamento</h3>
+                <div class="payment-options">
+                    <label class="payment-option">
+                        <input type="radio" name="paymentMethod" value="cash" checked onchange="togglePaymentMethod()">
+                        <span class="payment-icon">💵</span>
+                        <span>Dinheiro na Entrega</span>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="paymentMethod" value="pix" onchange="togglePaymentMethod()">
+                        <span class="payment-icon">📱</span>
+                        <span>PIX</span>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="paymentMethod" value="ton" onchange="togglePaymentMethod()">
+                        <span class="payment-icon">🪙</span>
+                        <span>TON (Crypto)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- PIX Payment Details (hidden by default) -->
+            <div id="pix-fields" style="display: none;" class="payment-details">
+                <div class="pix-info">
+                    <h4>Pagamento via PIX</h4>
+                    <p> chave PIX: <strong>pizzaria@tastyfoods.com</strong></p>
+                    <p> Ou escaneie o QR Code:</p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=pizzaria@tastyfoods.com" alt="PIX QR Code" class="qr-code">
+                    <p class="pix-instructions">Após o pagamento, envie o comprovante para o nosso WhatsApp.</p>
+                </div>
+            </div>
+            
+            <!-- TON Payment Details (hidden by default) -->
+            <div id="ton-fields" style="display: none;" class="payment-details">
+                <div class="ton-info">
+                    <h4>Pagamento via TON</h4>
+                    <p>Valor: <strong id="ton-amount">0.0000 TON</strong></p>
+                    <p>Endereço para pagamento:</p>
+                    <div class="ton-address" id="ton-address">Carregando...</div>
+                    <p>Ou escaneie o QR Code:</p>
+                    <img id="ton-qr-code" src="" alt="TON QR Code" class="qr-code">
+                    <p class="ton-instructions">Envie o valor exato em TON para o endereço acima.</p>
+                    <div class="payment-status" id="payment-status">
+                        <span class="status-pending">⏳ Pagamento pendente</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="place-order">Fazer Pedido</button>
+        </div>
+    </div>
+    
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePaymentModal()">&times;</span>
+            <h2>Confirmar Pagamento</h2>
+            <div id="modal-payment-content"></div>
+        </div>
+    </div>
+
+    <!-- Floating Cart (Always Visible) -->
+    <div class="floating-cart" id="floating-cart">
+        <div class="cart-header">
+            <h2>Seu Carrinho</h2>
+            <span id="cart-count">0</span>
+        </div>
+        <div class="cart-content">
+            <div id="cart-items"></div>
+            <p class="cart-total">Total: R$<span id="total">0.00</span></p>
+            <button class="clear-cart-btn" onclick="clearCart()">Limpar Carrinho</button>
+            <button class="checkout-btn" id="checkout-btn" onclick="showCheckout()">Finalizar Pedido</button>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        let total = 0;
+
+        async function loadMenu() {
+            try {
+                const [categoriesResponse, productsResponse] = await Promise.all([
+                    fetch('/categories'),
+                    fetch('/products')
+                ]);
+                const categories = await categoriesResponse.json();
+                const products = await productsResponse.json();
+                const menu = document.getElementById('menu');
+
+                categories.forEach(category => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'category';
+                    categoryDiv.innerHTML = `<h3>${category.name}</h3>`;
+                    const productsDiv = document.createElement('div');
+                    productsDiv.className = 'products';
+
+                    const categoryProducts = products.filter(product => product.category_id === category.id);
+                    categoryProducts.forEach(product => {
+                        const productDiv = document.createElement('div');
+                        productDiv.className = 'product';
+                        const imgSrc = product.image ? `/uploads/${product.image}` : `https://via.placeholder.com/200x150?text=${encodeURIComponent(product.name)}`;
+                        productDiv.innerHTML = `
+                            <img src="${imgSrc}" alt="${product.name}">
+                            <h3>${product.name}</h3>
+                            <p>${product.description}</p>
+                            <p>R$${product.price.toFixed(2)}</p>
+                            <button onclick="addToCart(${product.id}, '${product.name}', ${product.price})">Adicionar ao Carrinho</button>
+                        `;
+                        productsDiv.appendChild(productDiv);
+                    });
+
+                    categoryDiv.appendChild(productsDiv);
+                    menu.appendChild(categoryDiv);
+                });
+            } catch (error) {
+                console.error('Error loading menu:', error);
+            }
+        }
+
+        function addToCart(id, name, price) {
+            cart.push({ id, name, price });
+            total += price;
+            updateCart();
+        }
+
+        function updateCart() {
+            const cartItems = document.getElementById('cart-items');
+            cartItems.innerHTML = '';
+            cart.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'cart-item';
+                itemDiv.innerHTML = `<span>${item.name}</span><span>R$${item.price.toFixed(2)}</span>`;
+                cartItems.appendChild(itemDiv);
+            });
+            document.getElementById('total').textContent = total.toFixed(2);
+            document.getElementById('cart-count').textContent = cart.length;
+        }
+
+        function clearCart() {
+            cart = [];
+            total = 0;
+            updateCart();
+        }
+
+        function showCheckout() {
+            if (cart.length === 0) {
+                alert('Seu carrinho está vazio!');
+                return;
+            }
+            if (total < 25) {
+                alert('O pedido mínimo é de R$ 25,00!');
+                return;
+            }
+            document.getElementById('name').focus();
+            document.getElementById('name').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Payment status check variables
+        let paymentCheckInterval = null;
+        let currentPaymentId = null;
+
+        // Toggle payment method fields
+        function togglePaymentMethod() {
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+            const pixFields = document.getElementById('pix-fields');
+            const tonFields = document.getElementById('ton-fields');
+            
+            if (paymentMethod === 'pix') {
+                pixFields.style.display = 'block';
+                tonFields.style.display = 'none';
+            } else if (paymentMethod === 'ton') {
+                pixFields.style.display = 'none';
+                tonFields.style.display = 'block';
+                // Create TON payment when TON is selected
+                createTonPayment();
+            } else {
+                pixFields.style.display = 'none';
+                tonFields.style.display = 'none';
+                // Stop any ongoing payment check
+                stopPaymentStatusCheck();
+            }
+        }
+
+        // Create TON payment
+        async function createTonPayment() {
+            if (total <= 0) {
+                console.log('No items in cart');
+                return;
+            }
+
+            const tonAddressEl = document.getElementById('ton-address');
+            const tonAmountEl = document.getElementById('ton-amount');
+            const tonQrCodeEl = document.getElementById('ton-qr-code');
+            const paymentStatusEl = document.getElementById('payment-status');
+
+            tonAddressEl.textContent = 'Carregando...';
+            tonAmountEl.textContent = '0.0000 TON';
+            tonQrCodeEl.src = '';
+            paymentStatusEl.innerHTML = '<span class="status-pending">⏳ Criando pagamento...</span>';
+
+            try {
+                const response = await fetch('/payments/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        order_id: Date.now(), // Using timestamp as temporary order ID
+                        amount_brl: total,
+                        customer_wallet: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentPaymentId = data.payment.id;
+                    tonAddressEl.textContent = data.payment.payment_address;
+                    tonAmountEl.textContent = `${data.payment.amount_ton} TON`;
+                    
+                    // Generate QR code URL
+                    const qrCodeUrl = `https://toncenter.com/transfer/${data.payment.payment_address}?amount=${Math.floor(data.payment.amount_ton * 1000000000)}`;
+                    tonQrCodeEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`;
+                    
+                    paymentStatusEl.innerHTML = '<span class="status-pending">⏳ Pagamento pendente - Aguardando transferência</span>';
+                    
+                    // Start checking payment status
+                    startPaymentStatusCheck();
+                } else {
+                    paymentStatusEl.innerHTML = '<span class="status-error">❌ Erro ao criar pagamento</span>';
+                }
+            } catch (error) {
+                console.error('Error creating TON payment:', error);
+                tonAddressEl.textContent = 'Erro ao carregar';
+                paymentStatusEl.innerHTML = '<span class="status-error">❌ Erro ao criar pagamento</span>';
+            }
+        }
+
+        // Check payment status
+        async function checkPaymentStatus() {
+            if (!currentPaymentId) return;
+
+            try {
+                const response = await fetch(`/payments/${currentPaymentId}/status`);
+                const data = await response.json();
+
+                const paymentStatusEl = document.getElementById('payment-status');
+
+                if (data.status === 'confirmed') {
+                    paymentStatusEl.innerHTML = '<span class="status-confirmed">✅ Pagamento confirmado!</span>';
+                    stopPaymentStatusCheck();
+                } else if (data.status === 'pending') {
+                    paymentStatusEl.innerHTML = '<span class="status-pending">⏳ Pagamento pendente - Aguardando transferência</span>';
+                }
+            } catch (error) {
+                console.error('Error checking payment status:', error);
+            }
+        }
+
+        // Start payment status check (polling every 5 seconds)
+        function startPaymentStatusCheck() {
+            // Stop any existing interval first
+            stopPaymentStatusCheck();
+            
+            // Check immediately
+            checkPaymentStatus();
+            
+            // Then check every 5 seconds
+            paymentCheckInterval = setInterval(checkPaymentStatus, 5000);
+        }
+
+        // Stop payment status check
+        function stopPaymentStatusCheck() {
+            if (paymentCheckInterval) {
+                clearInterval(paymentCheckInterval);
+                paymentCheckInterval = null;
+            }
+        }
+
+        // Close payment modal
+        function closePaymentModal() {
+            const modal = document.getElementById('payment-modal');
+            modal.style.display = 'none';
+            stopPaymentStatusCheck();
+        }
+
+        document.getElementById('place-order').addEventListener('click', async () => {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+
+            if (!name || !email || !phone || !address || cart.length === 0) {
+                alert('Por favor, preencha todos os campos e adicione itens ao carrinho.');
+                return;
+            }
+
+            if (total < 25) {
+                alert('O pedido mínimo é de R$ 25,00!');
+                return;
+            }
+
+const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+            const customerNotes = document.getElementById('customer-notes').value;
+            
+            const order = {
+                customer_name: name,
+                customer_email: email,
+                customer_phone: phone,
+                delivery_address: address,
+                items: cart,
+                total: total,
+                payment_method: paymentMethod,
+                customer_notes: customerNotes
+            };
+
+            try {
+                const response = await fetch('/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(order)
+                });
+                if (response.ok) {
+                    alert('Order placed successfully!');
+                    cart = [];
+                    total = 0;
+                    updateCart();
+                    document.getElementById('name').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('phone').value = '';
+                    document.getElementById('address').value = '';
+                } else {
+                    alert('Erro ao fazer pedido.');
+                }
+            } catch (error) {
+                console.error('Error placing order:', error);
+            }
+        });
+
+        loadMenu();
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Ignorar arquivos sensíveis
+.env
+node_modules/
+
+# Arquivos locais de dados (JSON mock)
+data/
+
+# Pastas de upload (imagens podem ser grandes; suba só se necessário)
+uploads/
+
+# Outros comuns
+*.log
+.DS_Store
+Thumbs.db

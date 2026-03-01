@@ -1,0 +1,21 @@
+{
+  "name": "tasty_foods_pizzaria",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "@supabase/supabase-js": "^2.39.3",
+    "tonweb": "^0.0.66",
+    "multer": "^1.4.5-lts.1"
+  }
+}

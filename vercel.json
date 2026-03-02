@@ -1,15 +1,36 @@
 {
   "version": 2,
-  "buildCommand": "npm install",
-  "outputDirectory": ".",
-  "devCommand": "node api/index.js",
   "builds": [
     {
       "src": "api/index.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "styles.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "admin.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "uploads/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/uploads/(.*)",
+      "dest": "/uploads/$1"
+    },
+    {
+      "src": "\/(.*\\.(html|css|js))",
+      "dest": "/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "/api/index.js"

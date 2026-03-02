@@ -46,7 +46,10 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..')));
+
+// Serve static files from root directory
+const rootDir = path.join(__dirname, '..');
+app.use(express.static(rootDir));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Supabase Client

@@ -57,9 +57,26 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+// Default seed data
+const defaultCategories = [
+  { id: 1, name: "Pizzas" },
+  { id: 2, name: "Bebidas" },
+  { id: 5, name: "teste nova categoria" }
+];
+
+const defaultProducts = [
+  { id: 2, name: "Pizza de Pepperoni", price: 12.99, description: "Pizza com pepperoni", category_id: 1 },
+  { id: 3, name: "Pizza Havaiana", price: 13.99, description: "Pizza com presunto e abacaxi", category_id: 1 },
+  { id: 4, name: "Pizza Vegetariana", price: 11.99, description: "Pizza com vegetais", category_id: 1 },
+  { id: 5, name: "Pizza de Frango com BBQ", price: 14.99, description: "Pizza com frango BBQ", category_id: 1 },
+  { id: 6, name: "Coca-Cola", price: 2.99, description: "Refrigerante de cola", category_id: 2 },
+  { id: 7, name: "Sprite", price: 2.99, description: "Refrigerante de limão", category_id: 2 },
+  { id: 8, name: "Água", price: 1.99, description: "Água engarrafada", category_id: 2 }
+];
+
 // Mock data
-let mockCategories = readJsonFile('categories.json') || [];
-let mockProducts = readJsonFile('products.json') || [];
+let mockCategories = readJsonFile('categories.json') || defaultCategories;
+let mockProducts = readJsonFile('products.json') || defaultProducts;
 let mockOrders = readJsonFile('orders.json') || [];
 let mockPayments = readJsonFile('payments.json') || [];
 

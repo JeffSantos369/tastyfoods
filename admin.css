@@ -119,6 +119,12 @@ body {
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        
+        #product-form h3 {
+            color: #d32f2f;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
         button {
             background-color: #d32f2f;
             color: white;
@@ -129,6 +135,37 @@ body {
         }
         button:hover {
             background-color: #b71c1c;
+        }
+        
+        .btn-edit {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-edit:hover {
+            background-color: #1976d2;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-delete:hover {
+            background-color: #da190b;
         }
         .item {
             border: 1px solid #ddd;
@@ -184,4 +221,136 @@ body {
             background: #eee;
             padding: 2px 4px;
             border-radius: 2px;
+        }
+
+        /* Order Filters Styling */
+        .order-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 180px;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .filter-group input[type="text"],
+        .filter-group input[type="date"],
+        .filter-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .filter-group input[type="text"]:focus,
+        .filter-group input[type="date"]:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #d32f2f;
+            box-shadow: 0 0 5px rgba(211, 47, 47, 0.3);
+        }
+
+        .clear-filters-btn {
+            background-color: #999;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .clear-filters-btn:hover {
+            background-color: #666;
+        }
+
+        .apply-filters-btn {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .apply-filters-btn:hover {
+            background-color: #b71c1c;
+        }
+
+        @media (max-width: 768px) {
+            .order-filters {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+        }
+
+        /* Dashboard Filters */
+        .dashboard-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            align-items: flex-end;
+        }
+
+        .dashboard-filters .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 150px;
+        }
+
+        .dashboard-filters .filter-group label {
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .dashboard-filters .filter-group input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .dashboard-filters .filter-group input[type="date"]:focus {
+            outline: none;
+            border-color: #d32f2f;
+            box-shadow: 0 0 5px rgba(211, 47, 47, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-filters {
+                flex-direction: column;
+            }
+
+            .dashboard-filters .filter-group {
+                width: 100%;
+            }
         }
